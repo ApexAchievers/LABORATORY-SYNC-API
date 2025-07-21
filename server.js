@@ -5,9 +5,7 @@ import dotenv from 'dotenv';
 import userRoute from './Routes/User_route.js';
 import technicianRoute from './Routes/Technician_route.js';
 import bookingRoute from './Routes/LabtestBooking_route.js';
-
-// Import your routes
-
+import { seedAdmin } from './Middleware/Admin_seeder.js'; 
 
 // Load env vars
 dotenv.config();
@@ -20,27 +18,25 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-
-
-// Default root route
 app.get('/', (req, res) => {
   res.send('Welcome to LabSync API');
 });
 app.use('/api/auth', userRoute);
-app.use('/api/labtest', bookingRoute)
+app.use('/api/labtest', bookingRoute);
 app.use('/api/technician', technicianRoute);
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
+// MongoDB Connection and Server Startup
+mongoose.connect(process.env.MONGO_URI, {})
+  .then(async () => {
+    console.log(' MongoDB connected');
+    
+    //  Seed admin after successful DB connection
+    await seedAdmin();
 
-})
-.then(() => {
-  console.log('MongoDB connected');
-  // Start server only after DB connects
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error(' MongoDB connection error:', err);
   });
-})
-.catch((err) => {
-  console.error('MongoDB connection error:', err);
-});

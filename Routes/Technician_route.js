@@ -12,7 +12,7 @@ import { authenticateTechnician, authorizeRoles, protect } from '../Middleware/a
 
 const technicianRoute = express.Router();
 
-// ===================== ADMIN ROUTES =====================
+
 // create technicians
 technicianRoute.post('/invite', inviteTechnician);
 

@@ -6,7 +6,8 @@ import {
   cancelBooking,
   getAssignedBookings,
   updateTestResult,
-  updateBookingStatus
+  updateBookingStatus,
+  assignTechnicianToBooking,
 } from '../Controllers/LabtestBooking_Con.js'
 
 import { protect, authorizeRoles } from '../Middleware/authen.js';
@@ -24,6 +25,7 @@ bookingRoute.get('/technician/bookings', protect, authorizeRoles('technician'), 
 bookingRoute.put('/technician/bookings/:id/result', protect, authorizeRoles('technician'), updateTestResult);
 bookingRoute.put('/technician/bookings/:id/status', protect, authorizeRoles('technician'), updateBookingStatus);
 
+
 // ADMIN ROUTE - Get all bookings
 bookingRoute.get('/admin/all', protect, authorizeRoles('admin'), async (req, res) => {
   try {
@@ -35,5 +37,6 @@ bookingRoute.get('/admin/all', protect, authorizeRoles('admin'), async (req, res
     res.status(500).json({ message: 'Server error' });
   }
 });
+bookingRoute.put('/:bookingId/assign-technician', protect, authorizeRoles, assignTechnicianToBooking);
 
 export default bookingRoute;

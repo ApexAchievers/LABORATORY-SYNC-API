@@ -28,13 +28,19 @@ const labTestBookingSchema = new mongoose.Schema(
       required: true,
       enum: ['Blood Test', 'Urine Test', 'X-Ray', 'MRI', 'COVID-19', 'Other'],
     },
-    insuranceInfo: {
-      provider: String,
-      policyNumber: String,
-    },
+    
     scheduledDate: {
       type: Date,
       required: true,
+    },
+    scheduledTime: {
+      type: String, // e.g., '10:30', '15:00'
+      required: true,
+    },
+    priority: {
+      type: String,
+      enum: ['high', 'low', 'normal'],
+      default: 'normal',
     },
     technician: {
       type: mongoose.Schema.Types.ObjectId,

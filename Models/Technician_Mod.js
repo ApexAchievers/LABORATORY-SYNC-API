@@ -2,24 +2,43 @@ import mongoose from 'mongoose';
 
 const technicianSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String },
-    role: { type: String, default: 'technician' },
-    isVerified: { type: Boolean, default: false },
-    invitationToken: { type: String },
-    invitationTokenExpires: { type: Date },
-
-    specialties: [
-      {
-        type: String,
-        enum: ['Blood Test', 'Urine Test', 'X-Ray', 'MRI', 'COVID-19', 'Other'],
-      },
-    ],
+    fullName: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true
+    },
+    password: {
+      type: String
+    },
+    invitationToken: {
+      type: String
+    },
+    invitationTokenExpires: {
+      type: Date
+    },
+    isActivated: {
+      type: Boolean,
+      default: false
+    },
     isAvailable: {
       type: Boolean,
-      default: true,
+      default: true
     },
+    role: {
+      type: String,
+      enum: ['technician'],
+      default: 'technician'
+    },
+    specialties: {
+      enum: ['Blood Test', 'Urine Test', 'X-Ray', 'MRI', 'COVID-19', 'Other'],
+      default: []
+    }
   },
   { timestamps: true }
 );

@@ -11,7 +11,7 @@ import {
 // @access  Private
 export const createLabBooking = async (req, res) => {
   try {
-    const { patientDetails, testType, insuranceInfo, scheduledDate } = req.body;
+    const { patientDetails, testType, scheduledDate, scheduledTime } = req.body;
 
     if (!patientDetails || !testType || !scheduledDate || !patientDetails.email) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -21,8 +21,8 @@ export const createLabBooking = async (req, res) => {
       bookedBy: req.user._id,
       patientDetails,
       testType,
-      insuranceInfo,
       scheduledDate,
+      scheduledTime,
     });
 
     // Find technicians NOT assigned to an active job (only one at a time)
@@ -52,7 +52,7 @@ export const createLabBooking = async (req, res) => {
 
     if (availableTechnician) {
       await sendTechnicianAssignmentEmail({
-        name: availableTechnician.name,
+        name: availableTechnician.fullName,
         email: availableTechnician.email,
         testName: testType,
         patientName: patientDetails.fullName,
@@ -68,6 +68,53 @@ export const createLabBooking = async (req, res) => {
 
   } catch (err) {
     console.error('Error in createLabBooking:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const assignTechnicianToBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { technicianId } = req.body;
+
+    if (!technicianId) {
+      return res.status(400).json({ message: 'Technician ID is required' });
+    }
+
+    // Find booking
+    const booking = await LabTestBooking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check if the technician exists and is available
+    const technician = await Technician.findOne({
+      _id: technicianId,
+      isAvailable: true,
+    });
+
+    if (!technician) {
+      return res.status(400).json({ message: 'Technician not found or unavailable' });
+    }
+
+    // Assign the technician
+    booking.technician = technicianId;
+    booking.status = 'assigned';
+    await booking.save();
+
+    // Send technician assignment email
+    await sendTechnicianAssignmentEmail({
+      name: technician.fullName,
+      email: technician.email,
+      testName: booking.testType,
+      patientName: booking.patientDetails.fullName,
+      date: booking.scheduledDate,
+    });
+
+    res.status(200).json({ message: 'Technician assigned successfully', booking });
+
+  } catch (err) {
+    console.error('Error in assignTechnicianToBooking:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -165,7 +212,7 @@ export const updateTestResult = async (req, res) => {
     await booking.save();
 
     await notifyResultByEmail({
-      name: booking.patientDetails.name,
+      name: booking.patientDetails.fullName,
       email: booking.patientDetails.email,
       result: booking.result,
       testName: booking.testType,

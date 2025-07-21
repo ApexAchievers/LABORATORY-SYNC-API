@@ -1,11 +1,12 @@
-import { Technician } from '../Models/Technician_Mod.js';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+import { Technician } from '../Models/Technician_Mod.js';
 import { sendTechnicianInvitationEmail } from '../Configs/Email_service.js';
 
 // CREATE / INVITE Technician
 export const inviteTechnician = async (req, res) => {
   try {
-    const { email, name } = req.body;
+    const { email, fullName, specialties } = req.body;
 
     let technician = await Technician.findOne({ email });
 
@@ -17,11 +18,16 @@ export const inviteTechnician = async (req, res) => {
     const expires = Date.now() + 24 * 60 * 60 * 1000;
 
     if (!technician) {
-      technician = new Technician({ email, name });
+      technician = new Technician({ email, fullName, specialties });
+    } else {
+      technician.fullName = fullName || technician.fullName;
+      if (Array.isArray(specialties)) {
+        technician.specialties = specialties;
+      }
     }
 
     technician.invitationToken = token;
-    technician.invitationExpires = new Date(expires);
+    technician.invitationTokenExpires = new Date(expires);
     technician.isActivated = false;
 
     await technician.save();
@@ -31,6 +37,7 @@ export const inviteTechnician = async (req, res) => {
 
     return res.status(200).json({ message: 'Invitation sent successfully.' });
   } catch (error) {
+    console.error('Error inviting technician:', error);
     return res.status(500).json({ message: 'Failed to invite technician.', error });
   }
 };
@@ -38,97 +45,126 @@ export const inviteTechnician = async (req, res) => {
 // Accept invitation & complete registration
 export const acceptTechnicianInvitation = async (req, res) => {
   try {
-    const { token, password, name } = req.body;
+    const { token, password, fullName, specialties } = req.body;
 
     const technician = await Technician.findOne({
       invitationToken: token,
-      invitationExpires: { $gt: Date.now() }
+      invitationTokenExpires: { $gt: Date.now() }
     });
 
     if (!technician) {
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
-    technician.password = password;
-    technician.name = name || technician.name;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    technician.password = hashedPassword;
+    technician.fullName = fullName || technician.fullName;
+    if (Array.isArray(specialties)) {
+      technician.specialties = specialties;
+    }
+
     technician.invitationToken = undefined;
-    technician.invitationExpires = undefined;
+    technician.invitationTokenExpires = undefined;
     technician.isActivated = true;
 
     await technician.save();
 
     return res.status(200).json({ message: 'Technician registration completed.' });
   } catch (error) {
+    console.error('Error accepting invitation:', error);
     return res.status(500).json({ message: 'Failed to accept invitation', error });
   }
 };
 
-
-// GET all technicians
-export const getAllTechnicians = async (req, res) => {
+// DELETE a Technician by ID
+export const deleteTechnician = async (req, res) => {
   try {
-    const technicians = await Technician.find().select('-password -invitationToken');
-    res.status(200).json(technicians);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch technicians', error: err });
+    const { id } = req.params;
+
+    const technician = await Technician.findById(id);
+    if (!technician) {
+      return res.status(404).json({ message: 'Technician not found.' });
+    }
+
+    await technician.deleteOne();
+
+    return res.status(200).json({ message: 'Technician deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting technician:', error);
+    return res.status(500).json({ message: 'Failed to delete technician.', error });
   }
 };
 
-// GET single technician
+// GET all Technicians
+export const getAllTechnicians = async (req, res) => {
+  try {
+    const technicians = await Technician.find().select('-password').sort({ createdAt: -1 });
+    res.status(200).json(technicians);
+  } catch (error) {
+    console.error('Error fetching technicians:', error);
+    res.status(500).json({ message: 'Failed to fetch technicians.', error });
+  }
+};
+
+// GET Technician by ID
 export const getTechnicianById = async (req, res) => {
   try {
-    const technician = await Technician.findById(req.params.id).select('-password -invitationToken');
+    const technician = await Technician.findById(req.params.id).select('-password');
     if (!technician) {
       return res.status(404).json({ message: 'Technician not found' });
     }
     res.status(200).json(technician);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching technician', error: err });
+  } catch (error) {
+    console.error('Error fetching technician by ID:', error);
+    res.status(500).json({ message: 'Failed to fetch technician', error });
   }
 };
 
-// UPDATE technician info
-export const updateTechnician = async (req, res) => {
-  try {
-    const { name, email } = req.body;
-    const technician = await Technician.findByIdAndUpdate(
-      req.params.id,
-      { name, email },
-      { new: true, runValidators: true }
-    ).select('-password');
-    if (!technician) {
-      return res.status(404).json({ message: 'Technician not found' });
-    }
-    res.status(200).json({ message: 'Technician updated', technician });
-  } catch (err) {
-    res.status(500).json({ message: 'Update failed', error: err });
-  }
-};
-
-// Get logged-in technician's profile
+// GET Technician Profile (for logged-in technician)
 export const getTechnicianProfile = async (req, res) => {
   try {
     const technician = await Technician.findById(req.user.id).select('-password');
     if (!technician) {
       return res.status(404).json({ message: 'Technician not found' });
     }
-
-    res.status(200).json({ user: technician });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(200).json(technician);
+  } catch (error) {
+    console.error('Error fetching technician profile:', error);
+    res.status(500).json({ message: 'Failed to fetch profile', error });
   }
 };
 
-
-// DELETE technician
-export const deleteTechnician = async (req, res) => {
+// UPDATE Technician
+export const updateTechnician = async (req, res) => {
   try {
-    const technician = await Technician.findByIdAndDelete(req.params.id);
+    const { fullName, email, role, isActivated, specialties } = req.body;
+
+    const technician = await Technician.findById(req.params.id);
     if (!technician) {
       return res.status(404).json({ message: 'Technician not found' });
     }
-    res.status(200).json({ message: 'Technician deleted' });
-  } catch (err) {
-    res.status(500).json({ message: 'Delete failed', error: err });
+
+    technician.fullName = fullName || technician.fullName;
+    technician.email = email || technician.email;
+    if (role) technician.role = role;
+    if (typeof isActivated === 'boolean') technician.isActivated = isActivated;
+    if (Array.isArray(specialties)) technician.specialties = specialties;
+
+    const updatedTech = await technician.save();
+
+    res.status(200).json({
+      message: 'Technician updated successfully',
+      technician: {
+        _id: updatedTech._id,
+        fullName: updatedTech.fullName,
+        email: updatedTech.email,
+        role: updatedTech.role,
+        isActivated: updatedTech.isActivated,
+        specialties: updatedTech.specialties,
+      },
+    });
+  } catch (error) {
+    console.error('Update technician error:', error);
+    res.status(500).json({ message: 'Server error', error });
   }
 };
