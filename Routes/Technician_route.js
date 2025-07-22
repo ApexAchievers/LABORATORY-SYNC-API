@@ -39,7 +39,7 @@ technicianRoute.post('/accept-invitation/:token', acceptTechnicianInvitation);
 technicianRoute.get('/profile/me', authenticateTechnician, getTechnicianProfile);
 
 // Technician: Update own profile
-technicianRoute.put('/profile/me', authenticateTechnician, updateTechnician);
+technicianRoute.put('/update-profile/:id', authenticateTechnician, updateTechnician);
 
 
 export default technicianRoute;
