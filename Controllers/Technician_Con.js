@@ -45,7 +45,16 @@ export const inviteTechnician = async (req, res) => {
 // Accept invitation & complete registration
 export const acceptTechnicianInvitation = async (req, res) => {
   try {
-    const { token, password, fullName, specialties } = req.body;
+    const { token } = req.params;
+    const { password, confirmPassword } = req.body;
+
+    if (!password || !confirmPassword) {
+      return res.status(400).json({ message: 'Both password and confirmPassword are required.' });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match.' });
+    }
 
     const technician = await Technician.findOne({
       invitationToken: token,
@@ -58,10 +67,6 @@ export const acceptTechnicianInvitation = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     technician.password = hashedPassword;
-    technician.fullName = fullName || technician.fullName;
-    if (Array.isArray(specialties)) {
-      technician.specialties = specialties;
-    }
 
     technician.invitationToken = undefined;
     technician.invitationTokenExpires = undefined;
@@ -69,12 +74,14 @@ export const acceptTechnicianInvitation = async (req, res) => {
 
     await technician.save();
 
-    return res.status(200).json({ message: 'Technician registration completed.' });
+    // You can redirect (for frontend apps) or just return success
+    return res.status(200).json({ message: 'Password set successfully. Please log in.' });
   } catch (error) {
     console.error('Error accepting invitation:', error);
-    return res.status(500).json({ message: 'Failed to accept invitation', error });
+    return res.status(500).json({ message: 'Failed to set password', error });
   }
 };
+
 
 // DELETE a Technician by ID
 export const deleteTechnician = async (req, res) => {

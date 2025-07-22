@@ -26,7 +26,10 @@ const labTestBookingSchema = new mongoose.Schema(
     testType: {
       type: String,
       required: true,
-      enum: ['Blood Test', 'Urine Test', 'X-Ray', 'MRI', 'COVID-19', 'Other'],
+      enum: ['Full Blood Count', 'Blood Sugar', 'Blood Film for Malaria Parasites', 'Sickle Cell', 'COVID-19', 'HB Electrophoresis (Genotype)', 'Erythrocyte Sedimentation Rate (ESR)', 
+        'Blood Grouping', 'Typhidot', 'H. Pylori', 'VDRL for Syphillis', 'Hepatitis B', 'Hepatitis C', 'Retro Screen for HIV', 'Urine R/E', 'Stool R/E', 'Liver Function Test (LFT)',
+        'Kidney Function Test (KFT)', 'BUE & Cr', 'PCR for Tuberculosis (Gene Xpert)', 'Hormonal/Fertility Tests'
+      ],
     },
     
     scheduledDate: {
