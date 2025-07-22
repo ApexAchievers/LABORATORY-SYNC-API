@@ -82,6 +82,56 @@ export const acceptTechnicianInvitation = async (req, res) => {
   }
 };
 
+//login a technician
+export const loginTechnician = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required.' });
+    }
+
+    // Find technician by email
+    const technician = await Technician.findOne({ email });
+    if (!technician) {
+      return res.status(404).json({ message: 'Technician not found.' });
+    }
+
+    // Check if technician has activated their account
+    if (!technician.isActivated) {
+      return res.status(403).json({ message: 'Account not activated. Please complete registration.' });
+    }
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, technician.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials.' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: technician._id, role: 'technician' },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      message: 'Login successful',
+      token,
+      technician: {
+        id: technician._id,
+        fullName: technician.fullName,
+        email: technician.email,
+        specialties: technician.specialties,
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error during login.' });
+  }
+};
 
 // DELETE a Technician by ID
 export const deleteTechnician = async (req, res) => {

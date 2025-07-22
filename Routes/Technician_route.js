@@ -6,7 +6,8 @@ import {
   getTechnicianProfile,
   updateTechnician,
   deleteTechnician,
-  inviteTechnician
+  inviteTechnician,
+  loginTechnician
 } from '../Controllers/Technician_Con.js';
 import { authenticateTechnician, authorizeRoles, protect } from '../Middleware/authen.js';
 
@@ -18,6 +19,9 @@ technicianRoute.post('/invite', inviteTechnician);
 
 // Admin: Get all technicians
 technicianRoute.get('/', protect, authorizeRoles('admin'), getAllTechnicians);
+
+//login as tech
+technicianRoute.post('/login', loginTechnician);
 
 // Admin: Get technician by ID
 technicianRoute.get('/:id', protect, authorizeRoles('admin'), getTechnicianById);
