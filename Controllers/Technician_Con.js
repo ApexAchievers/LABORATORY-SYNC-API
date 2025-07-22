@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { Technician } from '../Models/Technician_Mod.js';
 import { sendTechnicianInvitationEmail } from '../Configs/Email_service.js';
 
