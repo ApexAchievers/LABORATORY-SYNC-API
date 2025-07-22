@@ -5,8 +5,7 @@ export const seedAdmin = async () => {
 
   if (!existingAdmin) {
     await User.create({
-      firstName: "Comfort",
-      lastName: "Parker",
+      fullName: "Comfort Parker",
       email: "c39744736@gmail.com",
       password: "admin123", // Plain text, Mongoose will hash it
       role: "admin",
