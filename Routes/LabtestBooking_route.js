@@ -1,42 +1,55 @@
+// routes/LabTestRoutes.js (or wherever your routes are defined)
+
 import express from 'express';
 import {
-  createLabBooking,
-  getMyBookings,
-  getBookingById,
-  cancelBooking,
-  getAssignedBookings,
-  updateTestResult,
-  updateBookingStatus,
-  assignTechnicianToBooking,
-} from '../Controllers/LabtestBooking_Con.js'
+  bookLabTest,
+  scheduleLabTest,
+  getLabTestBookingById,
+  startLabTest,
+  completeLabTest,
+  getTodayTestsForTechnician,
+  getAllLabTests,
+  getUserLabTests,
+  getTechnicianLabTests,
+  getLabTestsByDate,
+  getAvailableSlots,
+} from '../Controllers/LabtestBooking_Con.js';
 
 import { protect, authorizeRoles } from '../Middleware/authen.js';
 
-const bookingRoute = express.Router();
+const router = express.Router();
 
-// PATIENT ROUTES
-bookingRoute.post('/', protect, authorizeRoles('patient'), createLabBooking);
-bookingRoute.get('/', protect, authorizeRoles('patient'), getMyBookings);
-bookingRoute.get('/:id', protect, authorizeRoles('patient'), getBookingById);
-bookingRoute.delete('/:id', protect, authorizeRoles('patient'), cancelBooking);
+// Book a lab test
+router.post('/book', protect, authorizeRoles('patient'), bookLabTest);
 
-// TECHNICIAN ROUTES
-bookingRoute.get('/technician/bookings', protect, authorizeRoles('technician'), getAssignedBookings);
-bookingRoute.put('/technician/bookings/:id/result', protect, authorizeRoles('technician'), updateTestResult);
-bookingRoute.put('/technician/bookings/:id/status', protect, authorizeRoles('technician'), updateBookingStatus);
+// Schedule a test
+router.patch('/:id/schedule', protect, authorizeRoles('admin', 'technician'), scheduleLabTest);
 
+// Get test by ID
+router.get('/:id', protect, getLabTestBookingById);
 
-// ADMIN ROUTE - Get all bookings
-bookingRoute.get('/admin/all', protect, authorizeRoles('admin'), async (req, res) => {
-  try {
-    const { LabTestBooking } = await import('../Models/Labtestbooking_Mod.js');
-    const bookings = await LabTestBooking.find().sort({ createdAt: -1 });
-    res.json(bookings);
-  } catch (err) {
-    console.error('Admin get all bookings error:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-bookingRoute.put('/:bookingId/assign-technician', protect, authorizeRoles, assignTechnicianToBooking);
+// Start test (Technician only)
+router.patch('/:id/start', protect, authorizeRoles('technician'), startLabTest);
 
-export default bookingRoute;
+// Complete test (Technician only)
+router.patch('/:id/complete', protect, authorizeRoles('technician'), completeLabTest);
+
+// Get today’s shift tasks
+router.get('/today/shift', protect, authorizeRoles('technician'), getTodayTestsForTechnician);
+
+// Get all lab tests
+router.get('/', protect, authorizeRoles('admin'), getAllLabTests);
+
+// Get all lab tests by user
+router.get('/user/:userId', protect, getUserLabTests);
+
+// Get all lab tests assigned to technician
+router.get('/technician/:technicianId', protect, authorizeRoles('technician'), getTechnicianLabTests);
+
+// Get lab tests for a specific date
+router.get('/date/:date', protect, getLabTestsByDate);
+
+// Get available time slots for a date
+router.get('/available-slots/:date', protect, getAvailableSlots);
+
+export default router;
