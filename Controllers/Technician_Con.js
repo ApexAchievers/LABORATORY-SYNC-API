@@ -33,7 +33,7 @@ export const inviteTechnician = async (req, res) => {
 
     await technician.save();
 
-    const link = `${process.env.CLIENT_URL}/technician/setup/${token}`;
+    const link = `${process.env.CLIENT_URL}/${token}`;
     await sendTechnicianInvitationEmail(email, link);
 
     return res.status(200).json({ message: 'Invitation sent successfully.' });
