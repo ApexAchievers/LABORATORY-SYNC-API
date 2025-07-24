@@ -36,7 +36,7 @@ export const sendOtpEmail = async (toEmail, otp) => {
       <h2 style="color: #4CAF50;">LabSync Verification Code</h2>
       <p>Use the code below to verify your account:</p>
       <h1 style="letter-spacing: 3px;">${otp}</h1>
-      <p style="font-size: 14px; color: #777;">This OTP will expire in 30 minutes.</p>
+      <p style="font-size: 14px; color: #777;">This OTP will expire in 50 minutes.</p>
     </div>
   `;
   await sendMail(toEmail, "Your LabSync OTP Code", html);
