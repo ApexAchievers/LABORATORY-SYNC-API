@@ -20,7 +20,10 @@ import { protect, authorizeRoles } from '../Middleware/authen.js';
 const router = express.Router();
 
 // Book a lab test
-router.post('/book', protect, authorizeRoles('patient'), bookLabTest);
+router.post('/book', protect, authorizeRoles('user'), bookLabTest);
+
+// Schedule a test
+router.patch('/:id/schedule', protect, authorizeRoles('admin', 'technician'), scheduleLabTest);
 
 // Schedule a test
 router.patch('/:id/schedule', protect, authorizeRoles('admin', 'technician'), scheduleLabTest);

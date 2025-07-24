@@ -4,7 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import userRoute from './Routes/User_route.js';
 import technicianRoute from './Routes/Technician_route.js';
-import bookingRoute from './Routes/LabtestBooking_route.js';
+import router from './Routes/LabtestBooking_route.js';
 import { seedAdmin } from './Middleware/Admin_seeder.js'; 
 
 // Load env vars
@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
   res.send('Welcome to LabSync API');
 });
 app.use('/api/auth', userRoute);
-app.use('/api/labtest', bookingRoute);
+app.use('/api/labtest', router);
 app.use('/api/technician', technicianRoute);
 
 // MongoDB Connection and Server Startup

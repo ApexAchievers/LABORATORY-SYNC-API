@@ -53,39 +53,44 @@ export const register = async (req, res) => {
   }
 };
 
-
-// VERIFY OTP
+//verify otp
 export const verifyOTP = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { otp } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'User not found' });
+    if (!otp) {
+      return res.status(400).json({ message: 'OTP is required' });
     }
 
+    // Find the user with this OTP
+    const user = await User.findOne({ 'otp.code': otp });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    // Check if OTP is expired
+    if (!user.otp.expiresAt || user.otp.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'OTP has expired' });
+    }
+
+    // Check if already verified
     if (user.isVerified) {
       return res.status(400).json({ message: 'User is already verified' });
     }
 
-    if (
-      user.otp.code !== otp ||
-      !user.otp.expiresAt ||
-      user.otp.expiresAt < new Date()
-    ) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
-    }
-
+    // Mark user as verified
     user.isVerified = true;
     user.otp = undefined;
     await user.save();
 
-    res.json({ message: 'Email verified successfully. You can now log in.' });
+    res.json({ message: 'OTP verified successfully. You can now log in.' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error during OTP verification' });
   }
 };
+
 
 //Reset OTP
 export const resendOTP = async (req, res) => {

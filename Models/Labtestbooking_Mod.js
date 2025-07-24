@@ -65,27 +65,27 @@ const labTestBookingSchema = new mongoose.Schema(
     taskInfo: {
       requestedBy: {
         type: String,
-        required: true,
+        required: false,
         default: 'Laboratory Department',
       },
       requestedDate: {
         type: Date,
-        required: true,
+        required: false,
       },
       estimatedDuration: {
         type: String,
         required: true,
-        default: '30 minutes',
+        default: '15 minutes',
       },
     },
 
     scheduledDate: {
       type: Date,
-      required: true,
+      required: false,
     },
     scheduledTime: {
       type: String,
-      required: true,
+      required: false,
     },
 
     priority: {

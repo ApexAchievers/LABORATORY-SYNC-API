@@ -9,8 +9,6 @@ export const bookLabTest = async (req, res) => {
       bookedBy,
       patientDetails,
       testType,
-      testDetails,
-      taskInfo,
       priority,
       notes
     } = req.body;
@@ -19,8 +17,6 @@ export const bookLabTest = async (req, res) => {
       bookedBy,
       patientDetails,
       testType,
-      testDetails,
-      taskInfo,
       priority,
       notes,
     });
@@ -225,3 +221,5 @@ export const getAvailableSlots = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch available slots.' });
   }
 };
+
+
