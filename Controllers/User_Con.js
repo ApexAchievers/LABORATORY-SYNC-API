@@ -29,7 +29,7 @@ export const register = async (req, res) => {
     }
 
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 30 * 60 * 1000); 
+    const otpExpiry = new Date(Date.now() + 3 * 60 * 1000); 
     const newUser = await User.create({
       fullName,
       email,
