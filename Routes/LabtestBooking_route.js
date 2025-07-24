@@ -1,5 +1,3 @@
-// routes/LabTestRoutes.js (or wherever your routes are defined)
-
 import express from 'express';
 import {
   bookLabTest,
@@ -12,41 +10,42 @@ import {
   getTechnicianLabTests,
   getLabTestsByDate,
   getAvailableSlots,
+  
 } from '../Controllers/LabtestBooking_Con.js';
 
 import { protect, authorizeRoles } from '../Middleware/authen.js';
 
 const router = express.Router();
 
-// Book a lab test
+// Book a lab test (User only)
 router.post('/book', protect, authorizeRoles('user'), bookLabTest);
 
 
-// Get test by ID
+// Get a test booking by ID (Any authenticated user)
 router.get('/:id', protect, getLabTestBookingById);
 
-// Start test (Technician only)
+// Start a test (Technician only)
 router.patch('/:id/start', protect, authorizeRoles('technician'), startLabTest);
 
-// Complete test (Technician only)
+// Complete a test (Technician only)
 router.patch('/:id/complete', protect, authorizeRoles('technician'), completeLabTest);
 
-// Get today’s shift tasks
+// Get today’s tests for logged-in technician
 router.get('/today/shift', protect, authorizeRoles('technician'), getTodayTestsForTechnician);
 
-// Get all lab tests
+// Admin: Get all lab tests
 router.get('/', protect, authorizeRoles('admin'), getAllLabTests);
 
-// Get all lab tests by user
+// User: Get all their own bookings
 router.get('/user/:userId', protect, getUserLabTests);
 
-// Get all lab tests assigned to technician
+// Technician: Get all assigned tests
 router.get('/technician/:technicianId', protect, authorizeRoles('technician'), getTechnicianLabTests);
 
-// Get lab tests for a specific date
+// Get all tests on a specific date
 router.get('/date/:date', protect, getLabTestsByDate);
 
-// Get available time slots for a date
+// Get available time slots for a specific date
 router.get('/available-slots/:date', protect, getAvailableSlots);
 
 export default router;

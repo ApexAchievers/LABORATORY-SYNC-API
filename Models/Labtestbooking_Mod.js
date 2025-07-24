@@ -23,7 +23,7 @@ const labTestBookingSchema = new mongoose.Schema(
       },
       patientId: {
         type: String, 
-        required: true,
+        required: false,
         unique: true,
       },
       contact: String,
@@ -34,27 +34,28 @@ const labTestBookingSchema = new mongoose.Schema(
     },
 
     testType: {
-      type: String,
-      required: true,
-      enum: [
-        'Full Blood Count', 'Blood Sugar', 'Blood Film for Malaria Parasites', 'Sickle Cell', 'COVID-19',
-        'HB Electrophoresis (Genotype)', 'Erythrocyte Sedimentation Rate (ESR)', 'Blood Grouping',
-        'Typhidot', 'H. Pylori', 'VDRL for Syphillis', 'Hepatitis B', 'Hepatitis C',
-        'Retro Screen for HIV', 'Urine R/E', 'Stool R/E', 'Liver Function Test (LFT)',
-        'Kidney Function Test (KFT)', 'BUE & Cr', 'PCR for Tuberculosis (Gene Xpert)', 'Hormonal/Fertility Tests'
-      ],
-    },
+  type: [String],
+  required: true,
+  enum: [
+    'Full Blood Count', 'Blood Sugar', 'Blood Film for Malaria Parasites', 'Sickle Cell', 'COVID-19',
+    'HB Electrophoresis (Genotype)', 'Erythrocyte Sedimentation Rate (ESR)', 'Blood Grouping',
+    'Typhidot', 'H. Pylori', 'VDRL for Syphillis', 'Hepatitis B', 'Hepatitis C',
+    'Retro Screen for HIV', 'Urine R/E', 'Stool R/E', 'Liver Function Test (LFT)',
+    'Kidney Function Test (KFT)', 'BUE & Cr', 'PCR for Tuberculosis (Gene Xpert)', 'Hormonal/Fertility Tests'
+  ],
+  validate: [arrayLimit, 'At least one test must be selected']
+},
 
     testDetails: {
       description: {
         type: String,
-        required: true,
-        default: 'Test to check for infection', 
+        required: false,
+        default: '', 
       },
       instructions: {
         type: String,
-        required: true,
-        default: 'Handle blood samples with care',
+        required: false,
+        default: '',
       },
       requiredEquipment: {
         type: [String], 
@@ -110,5 +111,9 @@ const labTestBookingSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+function arrayLimit(val) {
+  return Array.isArray(val) && val.length > 0;
+}
+
 
 export const LabTestBooking = mongoose.model('LabTestBooking', labTestBookingSchema);
