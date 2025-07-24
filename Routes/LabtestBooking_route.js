@@ -3,7 +3,6 @@
 import express from 'express';
 import {
   bookLabTest,
-  scheduleLabTest,
   getLabTestBookingById,
   startLabTest,
   completeLabTest,
@@ -22,11 +21,6 @@ const router = express.Router();
 // Book a lab test
 router.post('/book', protect, authorizeRoles('user'), bookLabTest);
 
-// Schedule a test
-router.patch('/:id/schedule', protect, authorizeRoles('admin', 'technician'), scheduleLabTest);
-
-// Schedule a test
-router.patch('/:id/schedule', protect, authorizeRoles('admin', 'technician'), scheduleLabTest);
 
 // Get test by ID
 router.get('/:id', protect, getLabTestBookingById);

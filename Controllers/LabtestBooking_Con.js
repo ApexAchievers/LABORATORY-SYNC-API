@@ -6,19 +6,39 @@ import { User } from '../Models/User_Mod.js';
 export const bookLabTest = async (req, res) => {
   try {
     const {
-      bookedBy,
       patientDetails,
       testType,
       priority,
-      notes
+      notes,
+      scheduledDate,
+      scheduledTime
     } = req.body;
 
+    // Ensure authenticated user is booking
+    const bookedBy = req.user?.id;
+    if (!bookedBy) {
+      return res.status(401).json({ message: 'Unauthorized user' });
+    }
+
+    // Check if the slot is already taken (within 15 minutes)
+    const existing = await LabTestBooking.findOne({
+      scheduledDate,
+      scheduledTime,
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: 'Time slot already booked. Please select another slot.' });
+    }
+
+    // Create and save the booking
     const newBooking = new LabTestBooking({
       bookedBy,
       patientDetails,
       testType,
       priority,
       notes,
+      scheduledDate,
+      scheduledTime
     });
 
     const savedBooking = await newBooking.save();
@@ -29,37 +49,7 @@ export const bookLabTest = async (req, res) => {
   }
 };
 
-// PATCH /api/lab-tests/:id/schedule
-export const scheduleLabTest = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { scheduledDate, scheduledTime } = req.body;
 
-    const existing = await LabTestBooking.findOne({
-      scheduledDate,
-      scheduledTime,
-    });
-
-    if (existing) {
-      return res.status(400).json({ message: 'Time slot already booked.' });
-    }
-
-    const booking = await LabTestBooking.findByIdAndUpdate(
-      id,
-      { scheduledDate, scheduledTime },
-      { new: true }
-    );
-
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
-
-    res.status(200).json(booking);
-  } catch (error) {
-    console.error('Scheduling error:', error);
-    res.status(500).json({ message: 'Failed to schedule appointment.' });
-  }
-};
 
 // GET /api/lab-tests/:id
 export const getLabTestBookingById = async (req, res) => {
