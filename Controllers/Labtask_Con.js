@@ -99,3 +99,33 @@ export const getAllAppointmentsAndTasks = async (req, res) => {
     res.status(500).json({ message: 'Server error fetching appointments and tasks' });
   }
 };
+
+//Complete booking by technician
+export const updateBookingStatus = async (req, res) => {
+  const { id } = req.params; // Booking/task ID from URL
+  const { status } = req.body; // Status from request body
+
+  if (!status) {
+    return res.status(400).json({ message: "Status is required." });
+  }
+
+  try {
+    // Find the lab task by ID
+    const task = await LabTask.findById(id);
+
+    if (!task) {
+      return res.status(404).json({ message: "Booking not found." });
+    }
+
+    // Update the status
+    task.status = status;
+
+    // Save the changes
+    await task.save();
+
+    res.status(200).json({ message: "Booking status updated.", task });
+  } catch (error) {
+    console.error("Update booking status error:", error);
+    res.status(500).json({ message: "Server error." });
+  }
+};

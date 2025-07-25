@@ -1,6 +1,7 @@
 
 import mongoose from 'mongoose';
 import {LabTestBooking} from '../Models/Labtestbooking_Mod.js';
+import { sendAppointmentConfirmationEmail } from '../Configs/Email_service.js';
 
 //Patient books an appointment
 export const bookAppointment = async (req, res) => {
@@ -14,7 +15,7 @@ export const bookAppointment = async (req, res) => {
       priority
     } = req.body;
 
-    // ✅ 1. Calculate estimated duration
+    // Calculate estimated duration
     const baseDuration = 15;
     const extraTests = testType.length > 1 ? (testType.length - 1) * 5 : 0;
     const totalDuration = baseDuration + extraTests;
@@ -22,7 +23,7 @@ export const bookAppointment = async (req, res) => {
     const scheduledStart = new Date(`${scheduledDate}T${scheduledTime}:00`);
     const scheduledEnd = new Date(scheduledStart.getTime() + totalDuration * 60000);
 
-    // ✅ 2. Check for overlap by other users
+    // Check for overlap by other users
     const conflict = await LabTestBooking.findOne({
       scheduledDate: new Date(scheduledDate),
       bookedBy: { $ne: userId },
@@ -46,6 +47,13 @@ export const bookAppointment = async (req, res) => {
     });
 
     await newBooking.save();
+    await sendAppointmentConfirmationEmail({
+    name: newBooking.patientDetails.fullName,
+    email: newBooking.patientDetails.email,
+    testName: newBooking.testType.join(', '),
+    appointmentDate: `${newBooking.scheduledDate} at ${newBooking.scheduledTime}`,
+});
+
 
     res.status(201).json({
       message: 'Appointment booked successfully.',

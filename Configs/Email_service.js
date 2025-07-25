@@ -80,32 +80,39 @@ export const notifyResultByEmail = async ({ name, email, result, testName }) => 
   await sendMail(email, `Lab Test Result for ${testName}`, html);
 };
 
-// 7. Send Lab Test Booking Confirmation
-export const sendLabBookingConfirmationEmail = async ({ name, email, testName, date, time }) => {
+// Send Appointment Confirmation Email
+export const sendAppointmentConfirmationEmail = async ({ name, email, testName, appointmentDate }) => {
+  // Format date nicely
+  const formattedDate = new Date(appointmentDate).toLocaleString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  // Split test names into list items (if applicable)
+  const formattedTests = testName
+    ? testName.split(',').map(test => `<li>${test.trim()}</li>`).join('')
+    : '<li>Not specified</li>';
+
   const html = `
     <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9;">
-      <h2 style="color: #4CAF50;">Lab Test Booking Confirmed</h2>
+      <h2 style="color: #4CAF50;">Lab Appointment Confirmed</h2>
       <p>Dear ${name},</p>
-      <p>Your booking for the lab test <strong>${testName}</strong> has been confirmed.</p>
-      <p><strong>Date:</strong> ${date}<br/><strong>Time:</strong> ${time}</p>
-      <p>Thank you for using LabSync!</p>
+      <p>Your lab appointment has been successfully booked. Below are the details:</p>
+      <ul>
+        <li><strong>Date & Time:</strong> ${formattedDate}</li>
+        <li><strong>Test(s):</strong>
+          <ul>${formattedTests}</ul>
+        </li>
+      </ul>
+      <p>Please arrive at least 10 minutes early and bring any required documents or ID.</p>
+      <p style="font-size: 14px; color: #777;">Thank you for choosing <strong>LabSync</strong>.</p>
     </div>
   `;
-  await sendMail(email, `Your Lab Test Booking for ${testName}`, html);
-};
 
-// 8. Send Technician Assignment Email
-export const sendTechnicianAssignmentEmail = async ({ patientName, patientEmail, technicianName, testName, date, time }) => {
-  const html = `
-    <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f1f1f1;">
-      <h2 style="color: #4CAF50;">Technician Assigned</h2>
-      <p>Dear ${patientName},</p>
-      <p>We’ve assigned a technician to your upcoming lab test: <strong>${testName}</strong>.</p>
-      <p><strong>Technician:</strong> ${technicianName}<br/>
-         <strong>Date:</strong> ${date}<br/>
-         <strong>Time:</strong> ${time}</p>
-      <p>Thank you for choosing LabSync. We look forward to serving you.</p>
-    </div>
-  `;
-  await sendMail(patientEmail, `Technician Assigned for Your Lab Test`, html);
+  await sendMail(email, "Your Lab Appointment is Confirmed", html);
 };
