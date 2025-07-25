@@ -6,6 +6,7 @@ import userRoute from './Routes/User_route.js';
 import technicianRoute from './Routes/Technician_route.js';
 import router from './Routes/LabtestBooking_route.js';
 import { seedAdmin } from './Middleware/Admin_seeder.js'; 
+import labtaskroute from './Routes/Labtask_route.js';
 
 // Load env vars
 dotenv.config();
@@ -24,6 +25,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', userRoute);
 app.use('/api/labtest', router);
 app.use('/api/technician', technicianRoute);
+app.use('/api/Labtask', labtaskroute)
 
 // MongoDB Connection and Server Startup
 mongoose.connect(process.env.MONGO_URI, {})

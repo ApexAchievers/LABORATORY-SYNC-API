@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const labTestBookingSchema = new mongoose.Schema(
+export const labTestBookingSchema = new mongoose.Schema(
   {
     bookedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -21,11 +21,7 @@ const labTestBookingSchema = new mongoose.Schema(
         type: String,
         enum: ['male', 'female', 'other'],
       },
-      patientId: {
-        type: String, 
-        required: false,
-        unique: true,
-      },
+      
       contact: String,
       email: {
         type: String,
@@ -46,39 +42,7 @@ const labTestBookingSchema = new mongoose.Schema(
   validate: [arrayLimit, 'At least one test must be selected']
 },
 
-    testDetails: {
-      description: {
-        type: String,
-        required: false,
-        default: '', 
-      },
-      instructions: {
-        type: String,
-        required: false,
-        default: '',
-      },
-      requiredEquipment: {
-        type: [String], 
-        default: [],
-      },
-    },
-
-    taskInfo: {
-      requestedBy: {
-        type: String,
-        required: false,
-        default: 'Laboratory Department',
-      },
-      requestedDate: {
-        type: Date,
-        required: false,
-      },
-      estimatedDuration: {
-        type: String,
-        required: true,
-        default: '15 minutes',
-      },
-    },
+    
 
     scheduledDate: {
       type: Date,

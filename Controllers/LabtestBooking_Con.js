@@ -1,256 +1,186 @@
-import { LabTestBooking } from '../Models/Labtestbooking_Mod.js';
-import { Technician } from '../Models/Technician_Mod.js';
-import { User } from '../Models/User_Mod.js';
 
-// Utility: get all booked slots for a day
-const getTakenTimes = async (date) => {
-  const bookedSlots = await LabTestBooking.find({ scheduledDate: new Date(date) }).select('scheduledTime');
-  return bookedSlots.map(slot => slot.scheduledTime);
-};
+import mongoose from 'mongoose';
+import {LabTestBooking} from '../Models/Labtestbooking_Mod.js';
 
-// Utility: generate 15-minute interval slots between 8AM–5PM
-const generateAvailableSlots = (takenTimes) => {
-  const slots = [];
-  let startTime = 8 * 60;
-  let endTime = 17 * 60;
-
-  for (let time = startTime; time < endTime; time += 15) {
-    const hours = String(Math.floor(time / 60)).padStart(2, '0');
-    const minutes = String(time % 60).padStart(2, '0');
-    const slot = `${hours}:${minutes}`;
-    if (!takenTimes.includes(slot)) {
-      slots.push(slot);
-    }
-  }
-
-  return slots;
-};
-
-// Valid test types
-const validTestTypes = [
-  'Full Blood Count', 'Blood Sugar', 'Blood Film for Malaria Parasites', 'Sickle Cell', 'COVID-19',
-  'HB Electrophoresis (Genotype)', 'Erythrocyte Sedimentation Rate (ESR)', 'Blood Grouping',
-  'Typhidot', 'H. Pylori', 'VDRL for Syphillis', 'Hepatitis B', 'Hepatitis C',
-  'Retro Screen for HIV', 'Urine R/E', 'Stool R/E', 'Liver Function Test (LFT)',
-  'Kidney Function Test (KFT)', 'BUE & Cr', 'PCR for Tuberculosis (Gene Xpert)', 'Hormonal/Fertility Tests'
-];
-
-// ✅ Book & Schedule Lab Test
-export const bookLabTest = async (req, res) => {
+//Patient books an appointment
+export const bookAppointment = async (req, res) => {
   try {
+    const userId = req.user._id; // assuming you're using middleware to get the user
     const {
       patientDetails,
-      testType, // now an array
-      priority,
-      notes,
+      testType,
       scheduledDate,
-      scheduledTime
+      scheduledTime,
+      priority
     } = req.body;
 
-    const bookedBy = req.user?.id;
-    if (!bookedBy) {
-      return res.status(401).json({ message: 'Unauthorized user' });
-    }
+    // ✅ 1. Calculate estimated duration
+    const baseDuration = 15;
+    const extraTests = testType.length > 1 ? (testType.length - 1) * 5 : 0;
+    const totalDuration = baseDuration + extraTests;
 
-    // ✅ Ensure testType is an array with valid entries
-    if (!Array.isArray(testType) || testType.length === 0) {
-      return res.status(400).json({ message: 'Please select at least one test type.' });
-    }
+    const scheduledStart = new Date(`${scheduledDate}T${scheduledTime}:00`);
+    const scheduledEnd = new Date(scheduledStart.getTime() + totalDuration * 60000);
 
-    const invalidTests = testType.filter(test => !validTestTypes.includes(test));
-    if (invalidTests.length > 0) {
-      return res.status(400).json({ message: `Invalid test types: ${invalidTests.join(', ')}` });
-    }
-
-    // ✅ Check if this 15-minute slot is already booked
-    const existing = await LabTestBooking.findOne({
-      scheduledDate,
-      scheduledTime,
+    // ✅ 2. Check for overlap by other users
+    const conflict = await LabTestBooking.findOne({
+      scheduledDate: new Date(scheduledDate),
+      bookedBy: { $ne: userId },
+      scheduledTime: { $exists: true },
     });
 
-    if (existing) {
-      return res.status(400).json({ message: 'Time slot already booked. Please select another.' });
+    if (conflict) {
+      return res.status(409).json({
+        message: 'Selected time is already booked by another patient. Choose a different time.',
+      });
     }
 
-    // ✅ Save new booking
+    // ✅ 3. Save booking
     const newBooking = new LabTestBooking({
-      bookedBy,
+      bookedBy: userId,
       patientDetails,
       testType,
-      priority,
-      notes,
       scheduledDate,
       scheduledTime,
+      priority,
     });
 
-    const savedBooking = await newBooking.save();
+    await newBooking.save();
+
     res.status(201).json({
-      message: 'Booking successful',
-      booking: {
-        id: savedBooking._id,
-        patientDetails: savedBooking.patientDetails,
-        testType: savedBooking.testType,
-        priority: savedBooking.priority,
-        scheduledDate: savedBooking.scheduledDate,
-        scheduledTime: savedBooking.scheduledTime
-      }
+      message: 'Appointment booked successfully.',
+      appointment: newBooking,
+      estimatedDuration: `${totalDuration} minutes`
     });
+
   } catch (error) {
-    console.error('Booking error:', error);
-    res.status(500).json({ message: 'Failed to book lab test.' });
+    console.error('Error booking appointment:', error);
+    res.status(500).json({ message: 'Internal server error.' });
   }
 };
 
-// ✅ Get Lab Test Booking by ID
-export const getLabTestBookingById = async (req, res) => {
+// Patient Get all appointment booked
+export const getMyAppointments = async (req, res) => {
   try {
-    const booking = await LabTestBooking.findById(req.params.id)
-      .populate('bookedBy', 'name email')
-      .populate('technician', 'name email');
-
-    if (!booking) return res.status(404).json({ message: 'Booking not found' });
-
-    res.status(200).json(booking);
-  } catch (error) {
-    console.error('Get booking error:', error);
-    res.status(500).json({ message: 'Failed to retrieve booking.' });
-  }
-};
-
-// ✅ Start Lab Test
-export const startLabTest = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const technicianId = req.user.id;
-
-    const booking = await LabTestBooking.findById(id);
-    if (!booking) return res.status(404).json({ message: 'Booking not found' });
-
-    if (booking.status !== 'pending') {
-      return res.status(400).json({ message: 'Test already started or completed' });
-    }
-
-    booking.status = 'in-progress';
-    booking.technician = technicianId;
-    await booking.save();
-
-    res.status(200).json({ message: 'Test started', booking });
-  } catch (error) {
-    console.error('Start test error:', error);
-    res.status(500).json({ message: 'Failed to start test.' });
-  }
-};
-
-// ✅ Complete Lab Test
-export const completeLabTest = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { result, notes } = req.body;
-
-    const booking = await LabTestBooking.findById(id);
-    if (!booking || booking.status !== 'in-progress') {
-      return res.status(400).json({ message: 'Test not in progress or not found' });
-    }
-
-    booking.status = 'completed';
-    booking.result = result;
-    booking.notes = notes;
-    await booking.save();
-
-    res.status(200).json({ message: 'Test completed', booking });
-  } catch (error) {
-    console.error('Complete test error:', error);
-    res.status(500).json({ message: 'Failed to complete test.' });
-  }
-};
-
-// ✅ Get All Bookings (sorted)
-export const getAllLabTests = async (req, res) => {
-  try {
-    const bookings = await LabTestBooking.find()
+    const appointments = await LabTestBooking.find({ bookedBy: req.user._id })
       .sort({ scheduledDate: 1, scheduledTime: 1 });
-    res.status(200).json(bookings);
+
+    res.status(200).json(appointments);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to retrieve lab test bookings.' });
+    res.status(500).json({ message: "Failed to fetch appointments", error });
   }
 };
 
-// ✅ Get Lab Tests for Logged-in User
-export const getUserLabTests = async (req, res) => {
+// GET /api/appointments/:id
+export const getSingleAppointment = async (req, res) => {
   try {
+    const appointment = await LabTestBooking.findOne({
+      _id: req.params.id,
+      bookedBy: req.user._id,
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    res.status(200).json(appointment);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch appointment", error });
+  }
+};
+
+//Patient cancels appointment
+export const cancelAppointmentByPatient = async (req, res) => {
+  try {
+    const appointmentId = req.params.id;
     const userId = req.user._id;
 
-    const bookings = await LabTestBooking.find({ bookedBy: userId }).lean();
+    const appointment = await LabTestBooking.findById(appointmentId);
 
-    const formatted = bookings.map(b => ({
-      patientDetails: b.patientDetails,
-      testType: b.testType,
-      scheduledDate: b.scheduledDate,
-      scheduledTime: b.scheduledTime,
-      priority: b.priority,
-      status: b.status,
-      notes: b.notes
-    }));
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
 
-    res.status(200).json(formatted);
+    // Ensure only the user who booked it can cancel
+    if (appointment.bookedBy.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "You are not authorized to cancel this appointment" });
+    }
+
+    // Optional: check if appointment is already completed or canceled
+    if (appointment.status === 'cancelled' || appointment.status === 'completed') {
+      return res.status(400).json({ message: `Appointment already ${appointment.status}` });
+    }
+
+    // Mark appointment as cancelled
+    appointment.status = 'cancelled';
+    await appointment.save();
+
+    res.status(200).json({ message: "Appointment cancelled successfully", appointment });
   } catch (error) {
-    console.error('Error fetching user lab tests:', error);
-    res.status(500).json({ message: 'Failed to fetch lab tests.' });
+    res.status(500).json({ message: "Failed to cancel appointment", error });
   }
 };
 
-
-// ✅ Get Lab Tests for a Technician
-export const getTechnicianLabTests = async (req, res) => {
+//Patient update booked appointment
+export const updateAppointmentByPatient = async (req, res) => {
   try {
-    const { technicianId } = req.params;
-    const bookings = await LabTestBooking.find({ technician: technicianId });
-    res.status(200).json(bookings);
+    const { id } = req.params;
+    const { scheduledDate, scheduledTime, testType, priority, notes } = req.body;
+
+    const appointment = await LabTestBooking.findById(id);
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    // Optional: Check if the user owns this appointment
+    if (appointment.bookedBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized to update this appointment' });
+    }
+
+    // Check if the new slot is already taken (if date/time is changing)
+    if (
+      (scheduledDate && scheduledTime) &&
+      (appointment.scheduledDate !== scheduledDate || appointment.scheduledTime !== scheduledTime)
+    ) {
+      const existing = await LabTestBooking.findOne({ scheduledDate, scheduledTime });
+      if (existing) {
+        return res.status(400).json({ message: 'Selected time slot is already booked' });
+      }
+    }
+
+    // Update only what is provided
+    if (scheduledDate) appointment.scheduledDate = scheduledDate;
+    if (scheduledTime) appointment.scheduledTime = scheduledTime;
+    if (testType) appointment.testType = testType;
+    if (priority) appointment.priority = priority;
+    if (notes !== undefined) appointment.notes = notes;
+
+    const updated = await appointment.save();
+
+    res.status(200).json(updated);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to retrieve technician tasks.' });
+    console.error('Error updating appointment:', error);
+    res.status(500).json({ message: 'Failed to update appointment' });
   }
 };
 
-// ✅ Get Lab Tests for a Given Date
-export const getLabTestsByDate = async (req, res) => {
+
+//Technician to view all booked appointment
+export const getAllAppointmentsForTechnician = async (req, res) => {
   try {
-    const dateOnly = new Date(req.params.date);
-    const bookings = await LabTestBooking.find({ scheduledDate: dateOnly }).sort({ scheduledTime: 1 });
-    res.status(200).json(bookings);
+    // Check if user is a technician
+    if (req.user.role !== 'technician') {
+      return res.status(403).json({ message: 'Access denied. Not a technician.' });
+    }
+
+    const appointments = await LabTestBooking.find()
+      .populate('bookedBy', 'fullName email') // Optional: populate patient info
+      .sort({ scheduledDate: 1, scheduledTime: 1 });
+
+    res.status(200).json(appointments);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to retrieve bookings by date.' });
+    res.status(500).json({ message: "Failed to fetch all appointments", error });
   }
 };
 
-// ✅ Get Available Time Slots for a Day
-export const getAvailableSlots = async (req, res) => {
-  try {
-    const { date } = req.params;
-    const takenTimes = await getTakenTimes(date);
-    const slots = generateAvailableSlots(takenTimes);
-
-    res.status(200).json({ date, availableSlots: slots });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch available slots.' });
-  }
-};
-
-// ✅ Get Today's Lab Tests for a Shift
-export const getTodayTestsForTechnician = async (req, res) => {
-  try {
-    const { startHour, endHour } = req.query;
-    const today = new Date().toISOString().split('T')[0];
-    const dateOnly = new Date(today);
-
-    const tests = await LabTestBooking.find({
-      scheduledDate: dateOnly,
-      scheduledTime: { $gte: startHour, $lt: endHour },
-      status: 'pending',
-    }).sort({ scheduledTime: 1 });
-
-    res.status(200).json(tests);
-  } catch (error) {
-    console.error('Shift fetch error:', error);
-    res.status(500).json({ message: 'Failed to fetch shift tasks.' });
-  }
-};
