@@ -10,9 +10,9 @@ const labTaskSchema = new mongoose.Schema({
   bookedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
+        
       },
-      
+
   testDetails: {
     description: {
       type: String,

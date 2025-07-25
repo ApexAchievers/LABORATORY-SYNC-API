@@ -8,6 +8,7 @@ export const startLabTask = async (req, res) => {
     const appointmentId = req.params.id;
     const technicianId = req.user._id; // assuming technician is authenticated
 
+
     const { testDetails, taskInfo } = req.body;
 
     // Step 1: Check if appointment exists
