@@ -10,6 +10,7 @@ import {
   updateUserProfile,
   deleteUserAccount,
   updateUserRole,
+  getAllUsers
 } from '../Controllers/User_Con.js';
 import { registerSchema, loginSchema, verifyOtpSchema,forgotPasswordSchema,resetPasswordSchema } from '../Validator/Validate.js';
 import { validateRequest } from '../Middleware/ValidateRequest.js';
@@ -34,5 +35,5 @@ userRoute.delete('/profile', protect, deleteUserAccount);
 
 // Admin only
 userRoute.put('/update-role', protect, authorizeRoles('admin'), updateUserRole);
-
+userRoute.get('/get-all-users', protect, authorizeRoles('admin'), getAllUsers);
 export default userRoute;

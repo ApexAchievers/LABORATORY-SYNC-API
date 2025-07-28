@@ -319,3 +319,18 @@ export const updateUserRole = async (req, res) => {
   }
 };
 
+// ADMIN ONLY - GET ALL USER PROFILES
+export const getAllUsers = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Admins only' });
+    }
+
+    const users = await User.find().select('-password');
+    res.json({ users });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching users' });
+  }
+};
+

@@ -67,6 +67,43 @@ export const bookAppointment = async (req, res) => {
   }
 };
 
+// Get booked time slots for a given date
+export const getBookedTimeSlots = async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ message: 'Date is required in query (e.g. /api/slots?date=2025-07-28)' });
+    }
+
+    // Convert date string to actual Date object
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0); // Normalize to midnight
+
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(targetDate.getDate() + 1);
+
+    // Find all bookings on that date
+    const bookings = await LabTestBooking.find({
+      scheduledDate: {
+        $gte: targetDate,
+        $lt: nextDay
+      }
+    }).select('scheduledTime');
+
+    const bookedSlots = bookings.map(b => b.scheduledTime);
+
+    res.status(200).json({
+      date,
+      bookedSlots
+    });
+
+  } catch (error) {
+    console.error('Error fetching booked time slots:', error);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
 // Patient Get all appointment booked
 export const getMyAppointments = async (req, res) => {
   try {

@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   bookAppointment, getMyAppointments, getSingleAppointment, getAllAppointmentsForTechnician, cancelAppointmentByPatient,
-  updateAppointmentByPatient
+  updateAppointmentByPatient, getBookedTimeSlots
 } from '../Controllers/LabtestBooking_Con.js';
 import { authenticateTechnician, authorizeRoles, protect } from '../Middleware/authen.js';
 
@@ -14,4 +14,6 @@ router.get('/appointment/:id', protect, getSingleAppointment)
 router.get('/appointments/all', authenticateTechnician, getAllAppointmentsForTechnician)
 router.delete('/appointment/:id/cancel', protect, cancelAppointmentByPatient)
 router.put('/update-appointments/:id', protect, updateAppointmentByPatient)
+router.get('/slots', getBookedTimeSlots);
+
 export default router;
